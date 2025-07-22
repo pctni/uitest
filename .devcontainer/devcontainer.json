@@ -1,13 +1,17 @@
 {
   "name": "PCTNI UI Test - Deno SvelteKit",
-  "image": "denoland/deno:alpine",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
         "denoland.vscode-deno",
         "svelte.svelte-vscode",
         "bradlc.vscode-tailwindcss",
-        "ms-vscode.vscode-typescript-next"
+        "ms-vscode.vscode-typescript-next",
+        "github.copilot",
+        "github.copilot-chat"
       ],
       "settings": {
         "deno.enable": true,
@@ -35,5 +39,9 @@
     }
   },
   "postCreateCommand": "deno --version && echo 'Deno devcontainer ready!'",
-  "remoteUser": "deno"
+  "remoteUser": "deno",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
 }
