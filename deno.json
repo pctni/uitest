@@ -4,6 +4,7 @@
     "start": "deno run --allow-net --allow-read server.ts"
   },
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "lib": ["dom", "dom.iterable", "es2022"]
   }
 }
