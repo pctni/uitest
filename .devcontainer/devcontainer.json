@@ -34,8 +34,6 @@
 			"onAutoForward": "notify"
 		}
 	},
-	"postCreateCommand": "deno --version",
-	"remoteUser": "deno",
 	"features": {
 		"ghcr.io/devcontainers/features/common-utils:2": {
 			"installZsh": true,
@@ -43,5 +41,7 @@
 			"userUid": "1000",
 			"userGid": "1000"
 		}
-	}
+	},
+	"remoteUser": "deno",
+	"postCreateCommand": "deno --version"
 }
