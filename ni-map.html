@@ -8,6 +8,9 @@
     <!-- MapLibre GL CSS -->
     <link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
     
+    <!-- PMTiles -->
+    <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+    
     <style>
         * {
             box-sizing: border-box;
@@ -46,6 +49,29 @@
             height: 600px;
             border-radius: 8px;
             border: 1px solid #ddd;
+        }
+
+        /* Layer toggle control */
+        .layer-control {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        .layer-control label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .layer-control input[type="checkbox"] {
+            margin-right: 8px;
         }
 
         /* Override map control styles to be black and white */
@@ -87,12 +113,25 @@
     <p class="subtitle">Interactive mapping application</p>
     
     <div class="map-section">
-        <div id="map"></div>
+        <div id="map">
+            <div class="layer-control">
+                <label>
+                    <input type="checkbox" id="route-network-toggle" checked>
+                    Route Network Layer
+                </label>
+            </div>
+        </div>
     </div>
     
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.js"></script>
     <script>
+        // Initialize PMTiles protocol
+        console.log('Initializing PMTiles...');
+        let protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol("pmtiles", protocol.tile);
+        console.log('PMTiles protocol registered');
+
         // Initialize the map
         const map = new maplibregl.Map({
             container: 'map',
@@ -102,34 +141,174 @@
             maxBounds: [[-8.2, 54.0], [-5.2, 55.5]] // Northern Ireland bounds
         });
 
-        // Add navigation controls
-        map.addControl(new maplibregl.NavigationControl(), 'top-right');
-        
-        // Add scale control
-        map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
-        
-        // Add geolocate control
-        map.addControl(new maplibregl.GeolocateControl({
-            positionOptions: {
-                enableHighAccuracy: true
-            },
-            trackUserLocation: true
-        }), 'top-right');
+        map.on('load', () => {
+            console.log('Map loaded successfully');
+            
+            // Add navigation controls
+            map.addControl(new maplibregl.NavigationControl(), 'top-right');
+            
+            // Add scale control
+            map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+            
+            // Add geolocate control
+            map.addControl(new maplibregl.GeolocateControl({
+                positionOptions: {
+                    enableHighAccuracy: true
+                },
+                trackUserLocation: true
+            }), 'top-right');
 
-        // Add markers for major Northern Ireland cities
-        const cities = [
-            { name: 'Belfast', coordinates: [-5.93, 54.60] },
-            { name: 'Derry/Londonderry', coordinates: [-7.32, 55.00] }
-        ];
+            // Add markers for major Northern Ireland cities
+            const cities = [
+                { name: 'Belfast', coordinates: [-5.93, 54.60] },
+                { name: 'Derry/Londonderry', coordinates: [-7.32, 55.00] }
+            ];
 
-        cities.forEach(city => {
-            const popup = new maplibregl.Popup({ offset: 25 })
-                .setText(city.name);
+            cities.forEach(city => {
+                const popup = new maplibregl.Popup({ offset: 25 })
+                    .setText(city.name);
 
-            new maplibregl.Marker()
-                .setLngLat(city.coordinates)
-                .setPopup(popup)
-                .addTo(map);
+                new maplibregl.Marker()
+                    .setLngLat(city.coordinates)
+                    .setPopup(popup)
+                    .addTo(map);
+            });
+
+            // Test PMTiles loading with better debugging
+            const routeNetworkSource = 'route-network-fastest';
+            const pmtilesUrl = window.location.origin + '/static/route_network_fastest.pmtiles';
+            
+            console.log(`Testing PMTiles URL: ${pmtilesUrl}`);
+            
+            // Test if we can access the PMTiles file directly
+            fetch(pmtilesUrl)
+                .then(response => {
+                    console.log('PMTiles file fetch response:', response);
+                    if (response.ok) {
+                        console.log('PMTiles file is accessible');
+                        return response.arrayBuffer();
+                    } else {
+                        throw new Error(`Failed to fetch PMTiles: ${response.status}`);
+                    }
+                })
+                .then(buffer => {
+                    console.log('PMTiles file loaded, size:', buffer.byteLength);
+                    
+                    // Now add the source
+                    try {
+                        console.log('Adding PMTiles source to map...');
+                        map.addSource(routeNetworkSource, {
+                            type: 'vector',
+                            url: `pmtiles://${pmtilesUrl}`
+                        });
+                        console.log('PMTiles source added successfully');
+                        
+                        // Wait a bit then try to add the layer
+                        setTimeout(() => {
+                            addRouteLayer();
+                        }, 1000);
+                        
+                    } catch (error) {
+                        console.error('Error adding PMTiles source:', error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching PMTiles file:', error);
+                });
+
+            function addRouteLayer() {
+                console.log('Attempting to add route layer...');
+                
+                try {
+                    // Try different source layer names that might exist
+                    const possibleSourceLayers = [
+                        'route_network_fastest',
+                        'default',
+                        'layer0',
+                        'routes',
+                        'network'
+                    ];
+                    
+                    let layerAdded = false;
+                    
+                    for (const sourceLayer of possibleSourceLayers) {
+                        if (layerAdded) break;
+                        
+                        console.log(`Trying source layer: ${sourceLayer}`);
+                        
+                        try {
+                            map.addLayer({
+                                id: `route-network-layer-${sourceLayer}`,
+                                type: 'line',
+                                source: routeNetworkSource,
+                                'source-layer': sourceLayer,
+                                paint: {
+                                    'line-color': '#ff0000', // Bright red for visibility
+                                    'line-width': 3,
+                                    'line-opacity': 1
+                                }
+                            });
+                            
+                            console.log(`✅ Successfully added layer with source-layer: ${sourceLayer}`);
+                            layerAdded = true;
+                            
+                            // Add toggle functionality for this layer
+                            const toggle = document.getElementById('route-network-toggle');
+                            toggle.addEventListener('change', (e) => {
+                                const visibility = e.target.checked ? 'visible' : 'none';
+                                map.setLayoutProperty(`route-network-layer-${sourceLayer}`, 'visibility', visibility);
+                                console.log(`Route network layer visibility: ${visibility}`);
+                            });
+                            
+                        } catch (error) {
+                            console.warn(`Failed to add layer with source-layer ${sourceLayer}:`, error.message);
+                        }
+                    }
+                    
+                    if (!layerAdded) {
+                        console.error('❌ Failed to add layer with any source-layer name');
+                        
+                        // Try to inspect the source
+                        if (map.getSource(routeNetworkSource)) {
+                            console.log('Source exists, trying to query features...');
+                            setTimeout(() => {
+                                try {
+                                    const features = map.querySourceFeatures(routeNetworkSource);
+                                    console.log('Source features:', features);
+                                } catch (e) {
+                                    console.error('Error querying source features:', e);
+                                }
+                            }, 2000);
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('Error in addRouteLayer:', error);
+                }
+            }
+        });
+
+        // Enhanced error handling
+        map.on('error', (e) => {
+            console.error('❌ Map error:', e);
+        });
+
+        map.on('sourcedata', (e) => {
+            if (e.isSourceLoaded) {
+                console.log(`📊 Source loaded: ${e.sourceId}`);
+                if (e.sourceId === 'route-network-fastest') {
+                    console.log('Route network source loaded!');
+                }
+            }
+            if (e.sourceDataType === 'metadata') {
+                console.log(`📋 Source metadata loaded: ${e.sourceId}`);
+            }
+        });
+
+        map.on('data', (e) => {
+            if (e.dataType === 'source' && e.isSourceLoaded) {
+                console.log(`📁 Data loaded for source: ${e.sourceId}`);
+            }
         });
     </script>
 </body>

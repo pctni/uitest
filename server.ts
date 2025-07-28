@@ -35,6 +35,53 @@ async function serveFile(request: Request): Promise<Response> {
       : new Response("Not found", { status: 404 });
   }
 
+  // Serve PMTiles files
+  if (url.pathname.startsWith("/static/") && url.pathname.endsWith(".pmtiles")) {
+    const filePath = `.${url.pathname}`;
+    console.log(`Serving PMTiles file: ${filePath}`);
+    try {
+      const fileData = await Deno.readFile(filePath);
+      return new Response(fileData, {
+        headers: { 
+          "content-type": "application/octet-stream",
+          "cache-control": "public, max-age=3600",
+          "access-control-allow-origin": "*"
+        }
+      });
+    } catch (error) {
+      console.error(`Error serving PMTiles file ${filePath}:`, error);
+      return new Response("PMTiles file not found", { status: 404 });
+    }
+  }
+
+  // Serve other static files (png, css, js, etc.)
+  if (url.pathname.startsWith("/static/")) {
+    const filePath = `.${url.pathname}`;
+    try {
+      const fileData = await Deno.readFile(filePath);
+      const ext = filePath.split('.').pop()?.toLowerCase();
+      let contentType = "application/octet-stream";
+      
+      switch (ext) {
+        case "png": contentType = "image/png"; break;
+        case "jpg": case "jpeg": contentType = "image/jpeg"; break;
+        case "css": contentType = "text/css"; break;
+        case "js": contentType = "application/javascript"; break;
+        case "json": contentType = "application/json"; break;
+      }
+      
+      return new Response(fileData, {
+        headers: { 
+          "content-type": contentType,
+          "cache-control": "public, max-age=3600"
+        }
+      });
+    } catch (error) {
+      console.error(`Error serving static file ${filePath}:`, error);
+      return new Response("File not found", { status: 404 });
+    }
+  }
+
   return new Response("Not found", { status: 404 });
 }
 
