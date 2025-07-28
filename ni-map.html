@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦕 Deno + MapLibre - Northern Ireland</title>
+    <title>Northern Ireland Map</title>
     
     <!-- MapLibre GL CSS -->
     <link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
@@ -17,278 +17,119 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f8f9fa;
             min-height: 100vh;
-            color: white;
-        }
-        
-        .hero-section {
-            text-align: center;
-            padding: 3rem 2rem;
-            max-width: 800px;
-            margin: 0 auto;
+            color: #333;
+            padding: 2rem 1rem;
         }
         
         h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(45deg, #FFE066, #FF6B6B);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 2rem;
-        }
-        
-        .counter {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 2rem;
-            margin: 2rem 0;
-        }
-        
-        .count {
-            font-size: 4rem;
-            font-weight: bold;
-            min-width: 3ch;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 0.5rem;
-        }
-        
-        button {
-            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
-            border: none;
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: transform 0.2s;
-            font-weight: bold;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-        }
-        
-        .clock {
-            font-size: 1.5rem;
-            opacity: 0.9;
-            font-family: 'Courier New', monospace;
-            margin-bottom: 2rem;
-        }
-        
-        .links {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin: 2rem 0;
-            flex-wrap: wrap;
-        }
-
-        .links a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.75rem 1.5rem;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .links a:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.6);
-            transform: translateY(-2px);
-        }
-        
-        /* Map Section */
-        .map-section {
-            background: rgba(255, 255, 255, 0.95);
-            margin: 2rem auto;
-            max-width: 1200px;
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
             color: #333;
         }
         
-        .map-section h2 {
-            color: #2c3e50;
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-        
-        .map-section p {
+        .subtitle {
             text-align: center;
             margin-bottom: 2rem;
             color: #666;
         }
         
+        .map-section {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
         #map {
             width: 100%;
             height: 600px;
-            border-radius: 12px;
-            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        /* Override map control styles to be black and white */
+        .maplibregl-ctrl-group {
+            background: white !important;
+            border: 1px solid #ccc !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .maplibregl-ctrl-group button {
+            background: white !important;
+            color: #333 !important;
+            border: none !important;
+        }
+
+        .maplibregl-ctrl-group button:hover {
+            background: #f5f5f5 !important;
+            color: #000 !important;
+        }
+
+        .maplibregl-ctrl-group button:disabled {
+            background: #f9f9f9 !important;
+            color: #ccc !important;
         }
         
         @media (max-width: 768px) {
-            .hero-section {
-                padding: 2rem 1rem;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .counter {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .count {
-                font-size: 3rem;
-            }
-            
-            button {
-                padding: 0.8rem 1.5rem;
-                font-size: 1.2rem;
-            }
-            
             #map {
                 height: 400px;
             }
             
-            .map-section {
-                margin: 1rem;
-                padding: 1.5rem;
+            h1 {
+                font-size: 1.5rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="hero-section">
-        <h1>🦕 Deno + MapLibre</h1>
-        <p class="subtitle">Interactive Northern Ireland mapping powered by Deno</p>
-        
-        <div class="counter">
-            <button onclick="decrement()">-</button>
-            <div class="count" id="count">0</div>
-            <button onclick="increment()">+</button>
-        </div>
-        
-        <div class="clock" id="clock"></div>
-        
-        <div class="links">
-            <a href="https://deno.land/manual" target="_blank">Deno Manual</a>
-            <a href="https://maplibre.org/" target="_blank">MapLibre</a>
-            <a href="https://svelte-maplibre.vercel.app/" target="_blank">Svelte MapLibre</a>
-        </div>
-    </div>
-
+    <h1>Northern Ireland Map</h1>
+    <p class="subtitle">Interactive mapping application</p>
+    
     <div class="map-section">
-        <h2>🗺️ Northern Ireland Interactive Map</h2>
-        <p>Explore Northern Ireland with this interactive map powered by MapLibre GL</p>
         <div id="map"></div>
     </div>
     
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.js"></script>
     <script>
-        let count = 0;
-        
-        function increment() {
-            count++;
-            document.getElementById('count').textContent = count;
-        }
-        
-        function decrement() {
-            count--;
-            document.getElementById('count').textContent = count;
-        }
-        
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString();
-            document.getElementById('clock').textContent = `Current time: ${timeString}`;
-        }
-        
         // Initialize the map
-        function initMap() {
-            // Northern Ireland coordinates
-            const center = [-6.5, 54.6]; // Longitude, Latitude
-            const bounds = [
-                [-8.2, 54.0], // Southwest coordinates [lng, lat]
-                [-5.2, 55.5]  // Northeast coordinates [lng, lat]
-            ];
-            
-            const map = new maplibregl.Map({
-                container: 'map',
-                style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-                center: center,
-                zoom: 8,
-                maxBounds: bounds
-            });
-            
-            // Add navigation controls
-            map.addControl(new maplibregl.NavigationControl(), 'top-right');
-            
-            // Add geolocate control
-            map.addControl(new maplibregl.GeolocateControl({
-                positionOptions: {
-                    enableHighAccuracy: true
-                },
-                trackUserLocation: true,
-                showUserHeading: true
-            }), 'top-right');
-            
-            // Add scale control
-            map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
-            
-            // Add a marker for Belfast (capital city)
-            const belfast = [-5.9301, 54.5973];
-            const belfastMarker = new maplibregl.Marker({
-                color: '#FF6B6B'
-            })
-                .setLngLat(belfast)
-                .setPopup(new maplibregl.Popup({ offset: 25 })
-                    .setHTML('<div><h3>Belfast</h3><p>Capital and largest city of Northern Ireland</p></div>'))
-                .addTo(map);
-            
-            // Add a marker for Derry/Londonderry
-            const derry = [-7.3086, 55.0006];
-            const derryMarker = new maplibregl.Marker({
-                color: '#4ECDC4'
-            })
-                .setLngLat(derry)
-                .setPopup(new maplibregl.Popup({ offset: 25 })
-                    .setHTML('<div><h3>Derry/Londonderry</h3><p>Second-largest city in Northern Ireland</p></div>'))
-                .addTo(map);
-                
-            // Fit the map to Northern Ireland bounds with padding
-            map.fitBounds(bounds, { padding: 20 });
-            
-            console.log('Northern Ireland map initialized successfully! 🗺️');
-        }
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+            center: [-6.5, 54.6], // Northern Ireland center
+            zoom: 8,
+            maxBounds: [[-8.2, 54.0], [-5.2, 55.5]] // Northern Ireland bounds
+        });
+
+        // Add navigation controls
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
         
-        // Initialize everything when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Update clock immediately and then every second
-            updateClock();
-            setInterval(updateClock, 1000);
-            
-            // Initialize the map
-            initMap();
+        // Add scale control
+        map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+        
+        // Add geolocate control
+        map.addControl(new maplibregl.GeolocateControl({
+            positionOptions: {
+                enableHighAccuracy: true
+            },
+            trackUserLocation: true
+        }), 'top-right');
+
+        // Add markers for major Northern Ireland cities
+        const cities = [
+            { name: 'Belfast', coordinates: [-5.93, 54.60] },
+            { name: 'Derry/Londonderry', coordinates: [-7.32, 55.00] }
+        ];
+
+        cities.forEach(city => {
+            const popup = new maplibregl.Popup({ offset: 25 })
+                .setText(city.name);
+
+            new maplibregl.Marker()
+                .setLngLat(city.coordinates)
+                .setPopup(popup)
+                .addTo(map);
         });
     </script>
 </body>
