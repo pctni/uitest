@@ -47,10 +47,29 @@
       url={"pmtiles://" + pmtilesUrl} 
       attribution="PCTNI"
     >
-      <LineLayer 
+      <LineLayer
         sourceLayer="route_network_fastest_2025-06"
         paint={{
-          'line-color': '#880000',
+          'line-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'all_fastest_bicycle_go_dutch'],
+            1, '#808080',
+            49, '#808080',
+            50, '#ffff00',
+            99, '#ffff00',
+            100, '#80ff00',
+            249, '#80ff00',
+            250, '#00ffff',
+            499, '#00ffff',
+            500, '#80c0ff',
+            999, '#80c0ff',
+            1000, '#0080ff',
+            1999, '#0080ff',
+            2000, '#0000ff',
+            2999, '#0000ff',
+            3000, '#ff00ff'
+          ],
           'line-width': 2
         }}
         minzoom={6}
