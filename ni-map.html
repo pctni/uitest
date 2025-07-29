@@ -74,6 +74,39 @@
             margin-right: 8px;
         }
 
+        /* Legend styles */
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 200px;
+        }
+
+        .legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
+            border-radius: 1px;
+        }
+
         /* Override map control styles to be black and white */
         .maplibregl-ctrl-group {
             background: white !important;
@@ -119,6 +152,42 @@
                     <input type="checkbox" id="route-network-toggle" checked>
                     Route Network Layer
                 </label>
+            </div>
+            
+            <div class="legend">
+                <h4>Cycling Volume</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff00ff;"></div>
+                    <span>3000+ trips/day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #0000ff;"></div>
+                    <span>2000-2999 trips/day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #0080ff;"></div>
+                    <span>1000-1999 trips/day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #80c0ff;"></div>
+                    <span>500-999 trips/day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00ffff;"></div>
+                    <span>250-499 trips/day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #80ff00;"></div>
+                    <span>100-249 trips/day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffff00;"></div>
+                    <span>50-99 trips/day</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #808080;"></div>
+                    <span>&lt;50 trips/day</span>
+                </div>
             </div>
         </div>
     </div>
@@ -255,9 +324,32 @@
                                 }
                             });
                             
-                            console.log(`✅ Successfully added layer: ${layerId} with source-layer: ${layer.id}`);
-                            
-                            // Add toggle functionality for the first layer
+                                console.log(`✅ Successfully added layer: ${layerId} with source-layer: ${layer.id}`);
+                                
+                                // Add click handler for route information
+                                map.on('click', layerId, (e) => {
+                                    const properties = e.features[0].properties;
+                                    const volume = properties.all_fastest_bicycle_go_dutch || 'Unknown';
+                                    
+                                    new maplibregl.Popup()
+                                        .setLngLat(e.lngLat)
+                                        .setHTML(`
+                                            <div style="font-family: Arial, sans-serif;">
+                                                <h3 style="margin: 0 0 8px 0; font-size: 14px;">Route Network</h3>
+                                                <p style="margin: 0;"><strong>Daily Cycling Volume:</strong> ${volume} trips</p>
+                                            </div>
+                                        `)
+                                        .addTo(map);
+                                });
+                                
+                                // Change cursor on hover
+                                map.on('mouseenter', layerId, () => {
+                                    map.getCanvas().style.cursor = 'pointer';
+                                });
+                                
+                                map.on('mouseleave', layerId, () => {
+                                    map.getCanvas().style.cursor = '';
+                                });                            // Add toggle functionality for the first layer
                             if (index === 0) {
                                 const toggle = document.getElementById('route-network-toggle');
                                 toggle.addEventListener('change', (e) => {
@@ -446,45 +538,42 @@
                                 source: routeNetworkSource,
                                 'source-layer': sourceLayer,
                                 paint: {
-                                    // Color based on cycling volume
+                                    // Color based on cycling volume using the reference styling
                                     'line-color': [
-                                        'case',
-                                        ['>', ['get', 'cycling'], 1000], '#d73027', // High volume - dark red
-                                        ['>', ['get', 'cycling'], 500], '#f46d43',  // Medium-high - orange-red
-                                        ['>', ['get', 'cycling'], 200], '#fdae61',  // Medium - orange
-                                        ['>', ['get', 'cycling'], 100], '#fee08b',  // Medium-low - yellow
-                                        ['>', ['get', 'cycling'], 50], '#e6f598',   // Low - light green
-                                        ['>', ['get', 'cycling'], 10], '#abdda4',   // Very low - green
-                                        '#74add1' // Minimal/no data - blue
+                                        'interpolate',
+                                        ['linear'],
+                                        ['get', 'all_fastest_bicycle_go_dutch'],
+                                        1, '#808080',      // Very low - gray
+                                        49, '#808080',     // Low threshold
+                                        50, '#ffff00',     // Low - yellow
+                                        99, '#ffff00',     // Yellow range
+                                        100, '#80ff00',    // Medium-low - light green
+                                        249, '#80ff00',    // Light green range
+                                        250, '#00ffff',    // Medium - cyan
+                                        499, '#00ffff',    // Cyan range
+                                        500, '#80c0ff',    // Medium-high - light blue
+                                        999, '#80c0ff',    // Light blue range
+                                        1000, '#0080ff',   // High - blue
+                                        1999, '#0080ff',   // Blue range
+                                        2000, '#0000ff',   // Very high - dark blue
+                                        2999, '#0000ff',   // Dark blue range
+                                        3000, '#ff00ff'    // Extremely high - magenta
                                     ],
-                                    // Width based on cycling volume
+                                    // Width based on zoom and cycling volume
                                     'line-width': [
                                         'interpolate',
                                         ['linear'],
                                         ['zoom'],
-                                        8, [
-                                            'case',
-                                            ['>', ['get', 'cycling'], 1000], 4,
-                                            ['>', ['get', 'cycling'], 500], 3,
-                                            ['>', ['get', 'cycling'], 100], 2,
-                                            1
-                                        ],
-                                        12, [
-                                            'case',
-                                            ['>', ['get', 'cycling'], 1000], 8,
-                                            ['>', ['get', 'cycling'], 500], 6,
-                                            ['>', ['get', 'cycling'], 100], 4,
-                                            2
-                                        ],
-                                        16, [
-                                            'case',
-                                            ['>', ['get', 'cycling'], 1000], 12,
-                                            ['>', ['get', 'cycling'], 500], 9,
-                                            ['>', ['get', 'cycling'], 100], 6,
-                                            3
-                                        ]
+                                        6, 0.4,
+                                        8, 1,
+                                        10, 2,
+                                        12, 4,
+                                        14, 8,
+                                        16, 14,
+                                        18, 24
                                     ],
-                                    'line-opacity': 0.8
+                                    'line-opacity': 1,
+                                    'line-blur': 0
                                 }
                             });
                             
