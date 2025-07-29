@@ -1,13 +1,7 @@
 {
-  "nodeModulesDir": "auto",
   "tasks": {
     "build": "deno run -A build-simple.ts",
-    "dev": "deno run -A npm:vite@5 dev",
     "preview": "deno run -A jsr:@std/http/file-server --port=4173 build"
-  },
-  "imports": {
-    "$lib": "./src/lib/index.ts",
-    "$lib/*": "./src/lib/*"
   },
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "es2022", "deno.ns"],
