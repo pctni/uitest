@@ -14,39 +14,25 @@ is_windows() {
     [[ "$(uname)" == "MINGW"* ]] || [[ "$(uname)" == "MSYS"* ]] || [[ "$(uname)" == "CYGWIN"* ]]
 }
 
-# Only run download code on Linux (not on Windows/PowerShell)
-if is_linux; then
-    echo "Running on Linux - downloading PMTiles files..."
-    
-    # --- Download PMTiles from GitHub Release ---
-    # The GitHub repository to fetch the release from.
-    OWNER="pctni"
-    REPO="uitest"
-    # The destination directory for the downloaded file.
-    DEST_DIR="static"
+# --- Download PMTiles file if it doesn't exist ---
+DEST_DIR="static"
+FILENAME="route_network_fastest.pmtiles"
+DEST_FILE="$DEST_DIR/$FILENAME"
+URL="https://github.com/pctni/uitest/releases/download/v0.0.1/$FILENAME"
 
-    echo "Downloading from GitHub release v0.0.1..."
-
-    # Create the destination directory if it doesn't exist.
-    mkdir -p "$DEST_DIR"
-
-    # Install gh cli tool if not already installed
-    if ! command -v gh &> /dev/null; then
-        echo "gh command not found, installing..."
-        if command -v apt-get &> /dev/null; then
-            apt-get install gh -y
-        elif command -v yum &> /dev/null; then
-            yum install gh -y
-        else
-            echo "Package manager not supported. Please install gh manually."
-            exit 1
-        fi
-    fi
-    # Download the PMTiles file from the latest release
-    gh release download --repo "$OWNER/$REPO" --pattern "*.pmtiles" --dir "$DEST_DIR" --latest
-
+# Check if the file already exists
+if [ ! -f "$DEST_FILE" ]; then
+  echo "File $DEST_FILE not found. Downloading..."
+  
+  # Create the destination directory if it doesn't exist
+  mkdir -p "$DEST_DIR"
+  
+  # Download the file using curl
+  curl -L -o "$DEST_FILE" "$URL"
+  
+  echo "Download complete."
 else
-    echo "Not running on Linux - skipping PMTiles download"
+  echo "File $DEST_FILE already exists. Skipping download."
 fi
 
 # --- Run the rest of the original build command from netlify.toml ---
