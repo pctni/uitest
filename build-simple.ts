@@ -106,12 +106,23 @@ await Deno.writeTextFile("./build/index.html", html);
 
 // Copy static files
 if (existsSync("./static")) {
-  const copyCommand = new Deno.Command("powershell", {
-    args: ["-Command", "Copy-Item -Path './static' -Destination './build/static' -Recurse -Force"],
-    stdout: "inherit",
-    stderr: "inherit"
-  });
-  await copyCommand.output();
+  // Create static directory in build
+  if (!existsSync("./build/static")) {
+    await Deno.mkdir("./build/static");
+  }
+  
+  // Copy contents of static directory, not the directory itself
+  for await (const entry of Deno.readDir("./static")) {
+    const sourcePath = `./static/${entry.name}`;
+    const destPath = `./build/static/${entry.name}`;
+    
+    if (entry.isFile) {
+      await Deno.copyFile(sourcePath, destPath);
+    } else if (entry.isDirectory) {
+      const { copy } = await import("jsr:@std/fs/copy");
+      await copy(sourcePath, destPath, { overwrite: true });
+    }
+  }
 }
 
 console.log("✅ Build complete!");
