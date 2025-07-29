@@ -9,7 +9,7 @@
 
 <main>
   <h1>Northern Ireland Map</h1>
-  <p>Interactive mapping application</p>
+  <p>Interactive mapping application with cycling data</p>
   <MapComponent />
 </main>
 

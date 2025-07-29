@@ -41,40 +41,18 @@ jobs:
 
       - name: Build site
         run: |
-          # Create dist directory for GitHub Pages
+          # Install dependencies
+          deno install --allow-scripts
+          
+          # Build the SvelteKit app
+          deno task build
+          
+          # Copy build to dist for GitHub Pages
           mkdir -p dist
-          
-          # Verify source files exist
-          echo "Checking for source files..."
-          if [ ! -f "ni-map.html" ]; then
-            echo "ERROR: ni-map.html not found!"
-            exit 1
-          fi
-          
-          if [ ! -d "static" ]; then
-            echo "ERROR: static directory not found!"
-            exit 1
-          fi
-          
-          # Copy all necessary files to dist
-          cp ni-map.html dist/index.html
-          cp -r static dist/
-          
-          # Verify the copy was successful
-          if [ ! -f "dist/index.html" ]; then
-            echo "ERROR: Failed to copy ni-map.html to dist/index.html"
-            exit 1
-          fi
-          
-          if [ ! -d "dist/static" ]; then
-            echo "ERROR: Failed to copy static directory"
-            exit 1
-          fi
+          cp -r build/* dist/
           
           echo "Build complete. Contents of dist:"
           ls -la dist/
-          echo "Contents of dist/static:"
-          ls -la dist/static/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

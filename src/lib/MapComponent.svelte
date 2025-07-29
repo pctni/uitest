@@ -1,14 +1,51 @@
 <script lang="ts">
   import { MapLibre } from 'svelte-maplibre';
   import type { LngLatBoundsLike } from 'maplibre-gl';
+  import { onMount } from 'svelte';
 
   const center: [number, number] = [-6.5, 54.6];
   const bounds: LngLatBoundsLike = [-8.2, 54.0, -5.2, 55.5];
   const mapStyle = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+  
+  let mapInstance: any;
+  
+  onMount(async () => {
+    if (mapInstance) {
+      try {
+        // Import PMTiles and set up protocol
+        const { Protocol } = await import('pmtiles');
+        const protocol = new Protocol();
+        mapInstance.addProtocol("pmtiles", protocol.tile);
+        
+        // Add PMTiles source and layer
+        mapInstance.on('load', () => {
+          mapInstance.addSource('pmtiles-source', {
+            type: 'vector',
+            url: 'pmtiles://static/route_network_fastest.pmtiles'
+          });
+          
+          mapInstance.addLayer({
+            id: 'cycling-routes',
+            type: 'line',
+            source: 'pmtiles-source',
+            'source-layer': 'routes',
+            paint: {
+              'line-color': '#3b82f6',
+              'line-width': 2,
+              'line-opacity': 0.8
+            }
+          });
+        });
+      } catch (error) {
+        console.warn('PMTiles setup failed:', error);
+      }
+    }
+  });
 </script>
 
 <div class="map-container">
   <MapLibre
+    bind:map={mapInstance}
     style={mapStyle}
     {center}
     zoom={8}
