@@ -87,7 +87,7 @@ async function serveFile(request: Request): Promise<Response> {
           return new Response(chunk, {
             status: 206, // Partial Content
             headers: {
-              "content-type": "application/octet-stream",
+              "content-type": "application/vnd.pmtiles",
               "content-range": `bytes ${start}-${end}/${fileSize}`,
               "content-length": (end - start + 1).toString(),
               "accept-ranges": "bytes",
@@ -103,7 +103,7 @@ async function serveFile(request: Request): Promise<Response> {
       const fileData = await Deno.readFile(filePath);
       return new Response(fileData, {
         headers: { 
-          "content-type": "application/octet-stream",
+          "content-type": "application/vnd.pmtiles",
           "content-length": fileSize.toString(),
           "accept-ranges": "bytes",
           "cache-control": "public, max-age=3600",

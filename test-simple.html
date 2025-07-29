@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple PMTiles Test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.js"></script>
+    <script>
+        // Register PMTiles protocol
+        let protocol = new pmtiles.Protocol();
+        maplibregl.addProtocol("pmtiles", protocol.tile);
+
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {},
+                layers: [{
+                    id: 'background',
+                    type: 'background',
+                    paint: { 'background-color': '#f0f0f0' }
+                }]
+            },
+            center: [-6.5, 54.6],
+            zoom: 9
+        });
+
+        map.on('load', () => {
+            // Add PMTiles source
+            map.addSource('pmtiles-source', {
+                type: 'vector',
+                url: 'pmtiles://http://localhost:5174/static/route_network_fastest.pmtiles'
+            });
+
+            // Add layer without specifying source-layer (auto-detect)
+            map.addLayer({
+                id: 'pmtiles-layer',
+                type: 'line',
+                source: 'pmtiles-source',
+                paint: {
+                    'line-color': '#ff0000',
+                    'line-width': 3
+                }
+            });
+
+            console.log('PMTiles layer added');
+        });
+
+        map.on('error', (e) => {
+            console.error('Map error:', e);
+        });
+    </script>
+</body>
+</html>

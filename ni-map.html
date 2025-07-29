@@ -245,7 +245,8 @@
 
             // Test PMTiles loading with better debugging
             const routeNetworkSource = 'route-network-fastest';
-            const pmtilesUrl = window.location.origin + '/static/route_network_fastest.pmtiles';
+            // Use relative path for GitHub Pages deployment
+            const pmtilesUrl = './static/route_network_fastest.pmtiles';
             
             console.log(`Testing PMTiles URL: ${pmtilesUrl}`);
             

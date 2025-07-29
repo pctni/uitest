@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Northern Ireland Map</title>
+    
+    <!-- MapLibre GL CSS -->
+    <link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            color: #333;
+            padding: 2rem 1rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #666;
+        }
+        
+        .map-section {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        #map {
+            width: 100%;
+            height: 600px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        /* Override map control styles to be black and white */
+        .maplibregl-ctrl-group {
+            background: white !important;
+            border: 1px solid #ccc !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .maplibregl-ctrl-group button {
+            background: white !important;
+            color: #333 !important;
+            border: none !important;
+        }
+
+        .maplibregl-ctrl-group button:hover {
+            background: #f5f5f5 !important;
+            color: #000 !important;
+        }
+
+        .maplibregl-ctrl-group button:disabled {
+            background: #f9f9f9 !important;
+            color: #ccc !important;
+        }
+        
+        @media (max-width: 768px) {
+            #map {
+                height: 400px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Northern Ireland Map</h1>
+    <p class="subtitle">Interactive mapping application</p>
+    
+    <div class="map-section">
+        <div id="map"></div>
+    </div>
+    
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.js"></script>
+    <script>
+        // Initialize the map
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+            center: [-6.5, 54.6], // Northern Ireland center
+            zoom: 8,
+            maxBounds: [[-8.2, 54.0], [-5.2, 55.5]] // Northern Ireland bounds
+        });
+
+        // Add navigation controls
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        
+        // Add scale control
+        map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+        
+        // Add geolocate control
+        map.addControl(new maplibregl.GeolocateControl({
+            positionOptions: {
+                enableHighAccuracy: true
+            },
+            trackUserLocation: true
+        }), 'top-right');
+
+        // Add markers for major Northern Ireland cities
+        const cities = [
+            { name: 'Belfast', coordinates: [-5.93, 54.60] },
+            { name: 'Derry/Londonderry', coordinates: [-7.32, 55.00] }
+        ];
+
+        cities.forEach(city => {
+            const popup = new maplibregl.Popup({ offset: 25 })
+                .setText(city.name);
+
+            new maplibregl.Marker()
+                .setLngLat(city.coordinates)
+                .setPopup(popup)
+                .addTo(map);
+        });
+    </script>
+</body>
+</html>
