@@ -16,6 +16,7 @@
 		"test": "npm run test:e2e"
 	},
 	"dependencies": {
+		"@svelte-maplibre-gl/pmtiles": "^1.0.1",
 		"svelte-maplibre-gl": "^1.0.1"
 	},
 	"devDependencies": {
