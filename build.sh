@@ -27,28 +27,20 @@ OWNER="YOUR_GITHUB_OWNER"
 REPO="YOUR_GITHUB_REPO"
 # The destination directory for the downloaded file.
 DEST_DIR="static"
-# The filename we are looking for.
-FILE_NAME="route_network_fastest.pmtiles"
-DEST_FILE="$DEST_DIR/$FILE_NAME"
 
-# Check if the file already exists to avoid unnecessary downloads.
-if [ -f "$DEST_FILE" ]; then
-  echo "$DEST_FILE already exists. Skipping download."
+echo "Downloading from GitHub release v0.0.1..."
+  
+# Create the destination directory if it doesn't exist.
+mkdir -p "$DEST_DIR"
+
+# Download all assets from release v0.0.1
+gh release download v0.0.1 --repo "$OWNER/$REPO" --dir "$DEST_DIR"
+
+if [ $? -eq 0 ]; then
+  echo "Successfully downloaded files to $DEST_DIR."
 else
-  echo "PMTiles file not found. Downloading from GitHub release v0.0.1..."
-  
-  # Create the destination directory if it doesn't exist.
-  mkdir -p "$DEST_DIR"
-  
-  # Download the specific asset from release v0.0.1
-  gh release download v0.0.1 --pattern "$FILE_NAME" --repo "$OWNER/$REPO" --output "$DEST_FILE"
-  
-  if [ $? -eq 0 ]; then
-    echo "Successfully downloaded $FILE_NAME to $DEST_DIR."
-  else
-    echo "Error: Failed to download the file."
-    exit 1
-  fi
+  echo "Error: Failed to download the files."
+  exit 1
 fi
 
 # --- Run the rest of the original build command from netlify.toml ---
