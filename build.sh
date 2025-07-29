@@ -6,8 +6,8 @@ set -e
 
 # --- Download PMTiles from GitHub Release ---
 # The GitHub repository to fetch the release from.
-OWNER="YOUR_GITHUB_OWNER"
-REPO="YOUR_GITHUB_REPO"
+OWNER="pctni"
+REPO="uitest"
 # The destination directory for the downloaded file.
 DEST_DIR="static"
 
