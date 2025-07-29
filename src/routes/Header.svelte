@@ -2,7 +2,7 @@
 </script>
 
 <header>
-<h1><a href="https://svelte-maplibre-gl.mierune.dev">svelte-maplibre-gl</a> demo</h1>
+<h1>Propensity to Cycle Tool for Northern Ireland</h1>
 </header>
 
 <style>
