@@ -20,31 +20,31 @@ if is_linux; then
     
     # --- Download PMTiles from GitHub Release ---
     # The GitHub repository to fetch the release from.
-    OWNER="YOUR_GITHUB_OWNER"
-    REPO="YOUR_GITHUB_REPO"
+    OWNER="pctni"
+    REPO="uitest"
     # The destination directory for the downloaded file.
     DEST_DIR="static"
 
     echo "Downloading from GitHub release v0.0.1..."
-    # Define the path to the gh executable
-    GH_BIN="./gh_cli/bin/gh"
 
-    # Verify the installation
-    "$GH_BIN" --version
+    # Create the destination directory if it doesn't exist.
+    mkdir -p "$DEST_DIR"
 
-    # --- Download release assets using gh CLI ---
-    echo "Downloading release assets with gh CLI..."
-    # Use the gh CLI to download all assets from the specified tag.
-    # The GITHUB_TOKEN environment variable should be set in Netlify for private repos.
-    "$GH_BIN" release download v0.0.1 \
-      --repo "$OWNER/$REPO" \
-      --dir "$DEST_DIR" \
-      --clobber # Overwrite existing files
+    # Install gh cli tool if not already installed
+    if ! command -v gh &> /dev/null; then
+        echo "gh command not found, installing..."
+        if command -v apt-get &> /dev/null; then
+            sudo apt-get install gh -y
+        elif command -v yum &> /dev/null; then
+            sudo yum install gh -y
+        else
+            echo "Package manager not supported. Please install gh manually."
+            exit 1
+        fi
+    fi
+    # Download the PMTiles file from the latest release
+    gh release download --repo "$OWNER/$REPO" --pattern "*.pmtiles" --dir "$DEST_DIR" --latest
 
-    # Clean up the downloaded gh_cli directory
-    rm -rf gh_cli
-
-    echo "All files downloaded successfully."
 else
     echo "Not running on Linux - skipping PMTiles download"
 fi
@@ -53,6 +53,7 @@ fi
 echo "Running the main build process..."
 # Handle the rollup issue by removing package-lock.json and node_modules
 if [ -f "package-lock.json" ]; then
+  echo "Removing package-lock.json..."
   echo "Removing package-lock.json..."
   rm package-lock.json
 fi
