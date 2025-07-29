@@ -1,24 +1,23 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { MapLibre, FullScreenControl, GeolocateControl, ScaleControl } from 'svelte-maplibre-gl';
-  import type { LayerSpecification, SourceSpecification, StyleSpecification } from 'maplibre-gl';
+  import type { Map, LayerSpecification, StyleSpecification } from 'maplibre-gl';
   import { browser } from '$app/environment';
   import { PMTilesProtocol } from '@svelte-maplibre-gl/pmtiles';
 
   // --- State ---
   let showPmtiles = $state(false);
+  let map: Map | undefined = $state();
   const pmtilesBounds: [number, number, number, number] = [-7.815460, 54.049760, -5.447300, 55.220990];
   
   // --- Reactive Style ---
-  let style: StyleSpecification = $state({
-      version: 8,
-      sources: {},
-      layers: []
-  });
+  let style: StyleSpecification | null = $state(null);
 
   // --- PMTiles Definitions ---
   const pmtilesSourceId = 'pmtiles-source';
+  const pmtilesLayerId = 'route-network';
   const pmtilesLayer: LayerSpecification = {
-    id: 'route-network',
+    id: pmtilesLayerId,
     source: pmtilesSourceId,
     'source-layer': 'route_network_fastest_2025-06',
     minzoom: 6,
@@ -30,35 +29,50 @@
     }
   };
 
-  // --- Reactive Logic ---
-  $effect(() => {
+  // --- Load the complete style once on mount ---
+  onMount(() => {
+    if (!browser) return;
+    
     const baseStyleUrl = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
     
-    if (browser) {
-      // Fetch the base style from Carto CDN
-      fetch(baseStyleUrl)
-        .then(res => res.json())
-        .then(baseStyleObject => {
-          let sources = baseStyleObject.sources;
-          let layers = baseStyleObject.layers;
-
-          if (showPmtiles) {
-            const pmtilesUrl = new URL('/route_network_fastest.pmtiles', window.location.origin).toString();
-            // Add PMTiles source and layer if the toggle is on
-            sources = {
-              ...sources,
-              [pmtilesSourceId]: {
-                type: 'vector',
-                url: `pmtiles://${pmtilesUrl}`,
-                attribution: 'PCTNI'
-              }
-            };
-            layers = [...layers, pmtilesLayer];
+    fetch(baseStyleUrl)
+      .then(res => res.json())
+      .then(baseStyleObject => {
+        const pmtilesUrl = new URL('/route_network_fastest.pmtiles', window.location.origin).toString();
+        
+        // Always add the PMTiles source and layer to the style
+        const sources = {
+          ...baseStyleObject.sources,
+          [pmtilesSourceId]: {
+            type: 'vector',
+            url: `pmtiles://${pmtilesUrl}`,
+            attribution: 'PCTNI'
           }
+        };
+        
+        // Add the PMTiles layer before the first symbol layer to ensure it's visible
+        const firstSymbolId = baseStyleObject.layers.find(layer => layer.type === 'symbol')?.id;
+        const layers = [...baseStyleObject.layers];
+        const pmtilesLayerWithBeforeId = {
+          ...pmtilesLayer,
+          beforeId: firstSymbolId
+        };
+        
+        // Insert the PMTiles layer at the beginning to ensure it's visible
+        layers.push(pmtilesLayerWithBeforeId);
+      
+        // Set the complete style object
+        style = { ...baseStyleObject, sources, layers };
+      })
+      .catch(err => {
+        console.error('Failed to load map style:', err);
+      });
+  });
 
-          // Update the style object reactively
-          style = { ...baseStyleObject, sources, layers };
-        });
+  // --- Toggle layer visibility ---
+  $effect(() => {
+    if (map && map.isStyleLoaded() && map.getLayer(pmtilesLayerId)) {
+      map.setLayoutProperty(pmtilesLayerId, 'visibility', showPmtiles ? 'visible' : 'none');
     }
   });
 
@@ -75,16 +89,19 @@
   </label>
 </div>
 
-<MapLibre
-  class="h-[calc(100vh-100px)]"
-  {style}
-  bounds={pmtilesBounds}
-  fitBoundsOptions={{ padding: 20 }}
->
-  <FullScreenControl position="top-left" />
-  <GeolocateControl position="top-left" />
-  <ScaleControl position="bottom-left" unit="metric" maxWidth={200}/>
-</MapLibre>
+{#if style}
+  <MapLibre
+    class="h-[calc(100vh-100px)]"
+    {style}
+    bind:map
+    bounds={pmtilesBounds}
+    fitBoundsOptions={{ padding: 20 }}
+  >
+    <FullScreenControl position="top-left" />
+    <GeolocateControl position="top-left" />
+    <ScaleControl position="bottom-left" unit="metric" maxWidth={200}/>
+  </MapLibre>
+{/if}
 
 <style>
   .controls {
