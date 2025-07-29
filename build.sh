@@ -7,15 +7,35 @@ set -e
 # --- Install gh CLI if not present ---
 if ! type -p gh >/dev/null; then
   echo "GitHub CLI not found. Installing..."
-  (type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) \
-	&& sudo mkdir -p -m 755 /etc/apt/keyrings \
-	&& out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-	&& cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-	&& sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-	&& sudo mkdir -p -m 755 /etc/apt/sources.list.d \
-	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-	&& sudo apt update \
-	&& sudo apt install gh -y
+  # Try to install gh without sudo using npm if available
+  if type -p npm >/dev/null; then
+    echo "Installing gh via npm..."
+    npm install -g gh
+  else
+    # Fallback to direct download if npm is not available
+    echo "npm not found, attempting direct download..."
+    # Determine architecture
+    ARCH=$(uname -m)
+    case $ARCH in
+      x86_64)
+        GH_ARCH="amd64"
+        ;;
+      aarch64|arm64)
+        GH_ARCH="arm64"
+        ;;
+      *)
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+        ;;
+    esac
+    
+    # Download and extract gh
+    curl -L "https://github.com/cli/cli/releases/latest/download/gh_$(curl -s https://api.github.com/repos/cli/cli/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')_linux_$GH_ARCH.tar.gz" | tar xz
+    # Move to a location in PATH
+    mv gh_*/bin/gh /usr/local/bin/gh
+    # Clean up
+    rm -rf gh_*
+  fi
   echo "GitHub CLI installed successfully."
 else
   echo "GitHub CLI is already installed."
