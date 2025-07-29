@@ -1,36 +1,78 @@
-<script>
-  import MapComponent from '$lib/MapComponent.svelte';
+<script lang="ts">
+  import { 
+    MapLibre, 
+    FullScreenControl, 
+    GeolocateControl, 
+    ScaleControl,
+    VectorTileSource,
+    LineLayer,
+    CustomControl
+  } from 'svelte-maplibre-gl';
+  import { PMTilesProtocol } from '@svelte-maplibre-gl/pmtiles';
+  import { browser } from '$app/environment';
+
+  // --- State ---
+  let showPmtiles = $state(false);
+  const pmtilesBounds: [number, number, number, number] = [-7.815460, 54.049760, -5.447300, 55.220990];
+  const pmtilesUrl = '/route_network_fastest.pmtiles';
+
 </script>
 
-<svelte:head>
-  <title>Northern Ireland Map</title>
-  <meta name="description" content="Interactive Northern Ireland mapping application" />
-</svelte:head>
+{#if browser}
+  <PMTilesProtocol />
+{/if}
 
-<main>
-  <h1>Northern Ireland Map</h1>
-  <p>Interactive mapping application</p>
-  <MapComponent />
-</main>
+<MapLibre
+  class="h-[calc(100vh-100px)]"
+  style="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+  bounds={pmtilesBounds}
+  fitBoundsOptions={{ padding: 20 }}
+>
+  <FullScreenControl position="top-left" />
+  <GeolocateControl position="top-left" />
+  <ScaleControl position="bottom-left" unit="metric" maxWidth={200}/>
+
+  <CustomControl position="top-right">
+    <div class="map-overlay">
+      <label>
+        <input type="checkbox" bind:checked={showPmtiles} />
+        Show Network
+      </label>
+    </div>
+  </CustomControl>
+
+  {#if showPmtiles}
+    <VectorTileSource 
+      id="pmtiles-source" 
+      url={"pmtiles://" + pmtilesUrl} 
+      attribution="PCTNI"
+    >
+      <LineLayer 
+        sourceLayer="route_network_fastest_2025-06"
+        paint={{
+          'line-color': '#880000',
+          'line-width': 2
+        }}
+        minzoom={6}
+        maxzoom={13}
+      />
+    </VectorTileSource>
+  {/if}
+</MapLibre>
+
 
 <style>
-  main {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #f8f9fa;
-    min-height: 100vh;
-    padding: 2rem 1rem;
+  .map-overlay {
+    background: white;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-family: sans-serif;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
   }
-
-  h1 {
-    color: #333;
-    font-size: 2rem;
-    text-align: center;
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    color: #666;
-    text-align: center;
-    margin-bottom: 2rem;
+  .map-overlay input {
+    margin-right: 6px;
   }
 </style>
