@@ -42,4 +42,19 @@ echo "All files downloaded successfully."
 
 # --- Run the rest of the original build command from netlify.toml ---
 echo "Running the main build process..."
+# Handle the rollup issue by removing package-lock.json and node_modules
+if [ -f "package-lock.json" ]; then
+  echo "Removing package-lock.json..."
+  rm package-lock.json
+fi
+
+if [ -d "node_modules" ]; then
+  echo "Removing node_modules..."
+  rm -rf node_modules
+fi
+
+echo "Running npm install..."
+npm install
+
+echo "Running npm run build..."
 npm run build
