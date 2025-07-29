@@ -1938,6 +1938,7 @@
         "npm:@fontsource/fira-mono@5",
         "npm:@neoconfetti/svelte@2",
         "npm:@playwright/test@^1.49.1",
+        "npm:@svelte-maplibre-gl/pmtiles@^1.0.1",
         "npm:@sveltejs/adapter-netlify@5",
         "npm:@sveltejs/kit@^2.22.0",
         "npm:@sveltejs/vite-plugin-svelte@6",

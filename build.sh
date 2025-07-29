@@ -4,52 +4,58 @@
 # Exit on any error
 set -e
 
-# --- Download PMTiles from GitHub Release ---
-# The GitHub repository to fetch the release from.
-OWNER="pctni"
-REPO="uitest"
-# The destination directory for the downloaded file.
-DEST_DIR="static"
+# Function to detect if we're on Linux
+is_linux() {
+    [[ "$(uname)" == "Linux" ]]
+}
 
-echo "Downloading from GitHub release v0.0.1..."
+# Function to detect if we're on Windows/PowerShell
+is_windows() {
+    [[ "$(uname)" == "MINGW"* ]] || [[ "$(uname)" == "MSYS"* ]] || [[ "$(uname)" == "CYGWIN"* ]]
+}
 
-# Create the destination directory if it doesn't exist.
-mkdir -p "$DEST_DIR"
+# Only run download code on Linux (not on Windows/PowerShell)
+if is_linux; then
+    echo "Running on Linux - downloading PMTiles files..."
+    
+    # --- Download PMTiles from GitHub Release ---
+    # The GitHub repository to fetch the release from.
+    OWNER="YOUR_GITHUB_OWNER"
+    REPO="YOUR_GITHUB_REPO"
+    # The destination directory for the downloaded file.
+    DEST_DIR="static"
 
-# --- Install GitHub CLI without sudo ---
-echo "Installing GitHub CLI..."
-# Define the version and architecture for the GitHub CLI
-GH_VERSION="2.49.0" # Using a specific version for consistency
-GH_ARCH="amd64"
-GH_OS="linux"
-GH_TARBALL="gh_${GH_VERSION}_${GH_OS}_${GH_ARCH}.tar.gz"
-GH_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${GH_TARBALL}"
+    echo "Downloading from GitHub release v0.0.1..."
 
-# Download and extract the GitHub CLI
-curl -L -o "${GH_TARBALL}" "${GH_URL}"
-mkdir -p gh_cli
-tar -xzf "${GH_TARBALL}" -C gh_cli --strip-components=1
-rm "${GH_TARBALL}"
+    # Create the destination directory if it doesn't exist.
+    mkdir -p "$DEST_DIR"
 
-# Define the path to the gh executable
-GH_BIN="./gh_cli/bin/gh"
+    # Get the list of assets from the release and download each one
+    ASSETS_URL="https://api.github.com/repos/$OWNER/$REPO/releases/tags/v0.0.1"
+    echo "Fetching asset list from $ASSETS_URL..."
 
-# Verify the installation
-"$GH_BIN" --version
+    # Download and parse the assets list
+    curl -s "$ASSETS_URL" | \
+      grep "browser_download_url" | \
+      cut -d '"' -f 4 | \
+      while read -r URL; do
+        if [ -n "$URL" ]; then
+          FILENAME=$(basename "$URL")
+          echo "Downloading $FILENAME..."
+          curl -L -o "$DEST_DIR/$FILENAME" "$URL"
+          if [ $? -eq 0 ]; then
+            echo "Successfully downloaded $FILENAME to $DEST_DIR."
+          else
+            echo "Error: Failed to download $FILENAME."
+            exit 1
+          fi
+        fi
+      done
 
-# --- Download release assets using gh CLI ---
-echo "Downloading release assets with gh CLI..."
-# Use the gh CLI to download all assets from the specified tag.
-# The GITHUB_TOKEN environment variable should be set in Netlify for private repos.
-"$GH_BIN" release download v0.0.1 \
-  --repo "$OWNER/$REPO" \
-  --dir "$DEST_DIR" \
-  --clobber # Overwrite existing files
-
-# Clean up the downloaded gh_cli directory
-rm -rf gh_cli
-
-echo "All files downloaded successfully."
+    echo "All files downloaded successfully."
+else
+    echo "Not running on Linux - skipping PMTiles download"
+fi
 
 # --- Run the rest of the original build command from netlify.toml ---
 echo "Running the main build process..."
