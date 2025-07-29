@@ -34,9 +34,9 @@ if is_linux; then
     if ! command -v gh &> /dev/null; then
         echo "gh command not found, installing..."
         if command -v apt-get &> /dev/null; then
-            sudo apt-get install gh -y
+            apt-get install gh -y
         elif command -v yum &> /dev/null; then
-            sudo yum install gh -y
+            yum install gh -y
         else
             echo "Package manager not supported. Please install gh manually."
             exit 1
