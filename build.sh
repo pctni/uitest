@@ -26,31 +26,23 @@ if is_linux; then
     DEST_DIR="static"
 
     echo "Downloading from GitHub release v0.0.1..."
+    # Define the path to the gh executable
+    GH_BIN="./gh_cli/bin/gh"
 
-    # Create the destination directory if it doesn't exist.
-    mkdir -p "$DEST_DIR"
+    # Verify the installation
+    "$GH_BIN" --version
 
-    # Get the list of assets from the release and download each one
-    ASSETS_URL="https://api.github.com/repos/$OWNER/$REPO/releases/tags/v0.0.1"
-    echo "Fetching asset list from $ASSETS_URL..."
+    # --- Download release assets using gh CLI ---
+    echo "Downloading release assets with gh CLI..."
+    # Use the gh CLI to download all assets from the specified tag.
+    # The GITHUB_TOKEN environment variable should be set in Netlify for private repos.
+    "$GH_BIN" release download v0.0.1 \
+      --repo "$OWNER/$REPO" \
+      --dir "$DEST_DIR" \
+      --clobber # Overwrite existing files
 
-    # Download and parse the assets list
-    curl -s "$ASSETS_URL" | \
-      grep "browser_download_url" | \
-      cut -d '"' -f 4 | \
-      while read -r URL; do
-        if [ -n "$URL" ]; then
-          FILENAME=$(basename "$URL")
-          echo "Downloading $FILENAME..."
-          curl -L -o "$DEST_DIR/$FILENAME" "$URL"
-          if [ $? -eq 0 ]; then
-            echo "Successfully downloaded $FILENAME to $DEST_DIR."
-          else
-            echo "Error: Failed to download $FILENAME."
-            exit 1
-          fi
-        fi
-      done
+    # Clean up the downloaded gh_cli directory
+    rm -rf gh_cli
 
     echo "All files downloaded successfully."
 else
