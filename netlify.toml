@@ -1,6 +1,6 @@
 [build]
   publish = "build"
-  command = "chmod +x build.sh && ./build.sh"
+  command = "./build.sh"
 
 # PMTiles and static file headers for Firefox compatibility
 [[headers]]
