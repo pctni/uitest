@@ -16,27 +16,38 @@ echo "Downloading from GitHub release v0.0.1..."
 # Create the destination directory if it doesn't exist.
 mkdir -p "$DEST_DIR"
 
-# Get the list of assets from the release and download each one
-ASSETS_URL="https://api.github.com/repos/$OWNER/$REPO/releases/tags/v0.0.1"
-echo "Fetching asset list from $ASSETS_URL..."
+# --- Install GitHub CLI without sudo ---
+echo "Installing GitHub CLI..."
+# Define the version and architecture for the GitHub CLI
+GH_VERSION="2.49.0" # Using a specific version for consistency
+GH_ARCH="amd64"
+GH_OS="linux"
+GH_TARBALL="gh_${GH_VERSION}_${GH_OS}_${GH_ARCH}.tar.gz"
+GH_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/${GH_TARBALL}"
 
-# Download and parse the assets list
-curl -s "$ASSETS_URL" | \
-  grep "browser_download_url" | \
-  cut -d '"' -f 4 | \
-  while read -r URL; do
-    if [ -n "$URL" ]; then
-      FILENAME=$(basename "$URL")
-      echo "Downloading $FILENAME..."
-      curl -L -o "$DEST_DIR/$FILENAME" "$URL"
-      if [ $? -eq 0 ]; then
-        echo "Successfully downloaded $FILENAME to $DEST_DIR."
-      else
-        echo "Error: Failed to download $FILENAME."
-        exit 1
-      fi
-    fi
-  done
+# Download and extract the GitHub CLI
+curl -L -o "${GH_TARBALL}" "${GH_URL}"
+mkdir -p gh_cli
+tar -xzf "${GH_TARBALL}" -C gh_cli --strip-components=1
+rm "${GH_TARBALL}"
+
+# Define the path to the gh executable
+GH_BIN="./gh_cli/bin/gh"
+
+# Verify the installation
+"$GH_BIN" --version
+
+# --- Download release assets using gh CLI ---
+echo "Downloading release assets with gh CLI..."
+# Use the gh CLI to download all assets from the specified tag.
+# The GITHUB_TOKEN environment variable should be set in Netlify for private repos.
+"$GH_BIN" release download v0.0.1 \
+  --repo "$OWNER/$REPO" \
+  --dir "$DEST_DIR" \
+  --clobber # Overwrite existing files
+
+# Clean up the downloaded gh_cli directory
+rm -rf gh_cli
 
 echo "All files downloaded successfully."
 
