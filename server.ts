@@ -1,9 +1,21 @@
 #!/usr/bin/env -S deno run --allow-net --allow-read
 
-const PORT = 5173;
+const PORT = 5174;
 
 async function serveFile(request: Request): Promise<Response> {
   const url = new URL(request.url);
+
+  // Handle CORS preflight requests
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+        "access-control-allow-headers": "Range, Content-Type",
+        "access-control-max-age": "86400"
+      }
+    });
+  }
 
   // Serve the Northern Ireland map for the root path
   if (url.pathname === "/" || url.pathname === "/index.html") {
@@ -25,6 +37,16 @@ async function serveFile(request: Request): Promise<Response> {
     });
   }
 
+  // Serve the test simple PMTiles page at /test
+  if (url.pathname === "/test") {
+    const html = await Deno.readTextFile("./test-simple.html").catch(() =>
+      "Error loading test page"
+    );
+    return new Response(html, {
+      headers: { "content-type": "text/html", "cache-control": "no-cache" },
+    });
+  }
+
   // Serve favicon
   if (url.pathname === "/favicon.png") {
     const favicon = await Deno.readFile("./static/favicon.png").catch(() =>
@@ -35,17 +57,58 @@ async function serveFile(request: Request): Promise<Response> {
       : new Response("Not found", { status: 404 });
   }
 
-  // Serve PMTiles files
+  // Serve PMTiles files with Range Request support
   if (url.pathname.startsWith("/static/") && url.pathname.endsWith(".pmtiles")) {
     const filePath = `.${url.pathname}`;
     console.log(`Serving PMTiles file: ${filePath}`);
     try {
+      const fileInfo = await Deno.stat(filePath);
+      const fileSize = fileInfo.size;
+      
+      // Check for Range header
+      const rangeHeader = request.headers.get("range");
+      
+      if (rangeHeader) {
+        // Parse Range header (e.g., "bytes=0-1023")
+        const rangeMatch = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+        if (rangeMatch) {
+          const start = parseInt(rangeMatch[1]);
+          const end = rangeMatch[2] ? parseInt(rangeMatch[2]) : fileSize - 1;
+          
+          console.log(`Range request: bytes ${start}-${end} of ${fileSize}`);
+          
+          // Read the specific byte range
+          const file = await Deno.open(filePath, { read: true });
+          await file.seek(start, Deno.SeekMode.Start);
+          const chunk = new Uint8Array(end - start + 1);
+          await file.read(chunk);
+          file.close();
+          
+          return new Response(chunk, {
+            status: 206, // Partial Content
+            headers: {
+              "content-type": "application/octet-stream",
+              "content-range": `bytes ${start}-${end}/${fileSize}`,
+              "content-length": (end - start + 1).toString(),
+              "accept-ranges": "bytes",
+              "cache-control": "public, max-age=3600",
+              "access-control-allow-origin": "*",
+              "access-control-allow-headers": "Range"
+            }
+          });
+        }
+      }
+      
+      // Regular full file request
       const fileData = await Deno.readFile(filePath);
       return new Response(fileData, {
         headers: { 
           "content-type": "application/octet-stream",
+          "content-length": fileSize.toString(),
+          "accept-ranges": "bytes",
           "cache-control": "public, max-age=3600",
-          "access-control-allow-origin": "*"
+          "access-control-allow-origin": "*",
+          "access-control-allow-headers": "Range"
         }
       });
     } catch (error) {
@@ -88,6 +151,7 @@ async function serveFile(request: Request): Promise<Response> {
 console.log("🦕 Deno server starting...");
 console.log(`🌐 http://localhost:${PORT}/ - Northern Ireland Map`);
 console.log(`⚡ http://localhost:${PORT}/simple - Simple Version`);
+console.log(`🧪 http://localhost:${PORT}/test - Test PMTiles`);
 
 const server = Deno.serve({ port: PORT }, serveFile);
 

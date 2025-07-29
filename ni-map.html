@@ -137,7 +137,7 @@
             container: 'map',
             style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
             center: [-6.5, 54.6], // Northern Ireland center
-            zoom: 8,
+            zoom: 10, // Increased zoom to see more detail
             maxBounds: [[-8.2, 54.0], [-5.2, 55.5]] // Northern Ireland bounds
         });
 
@@ -180,53 +180,256 @@
             
             console.log(`Testing PMTiles URL: ${pmtilesUrl}`);
             
-            // Test if we can access the PMTiles file directly
-            fetch(pmtilesUrl)
-                .then(response => {
-                    console.log('PMTiles file fetch response:', response);
-                    if (response.ok) {
-                        console.log('PMTiles file is accessible');
-                        return response.arrayBuffer();
-                    } else {
-                        throw new Error(`Failed to fetch PMTiles: ${response.status}`);
-                    }
-                })
-                .then(buffer => {
-                    console.log('PMTiles file loaded, size:', buffer.byteLength);
+            // Test PMTiles library directly
+            console.log('Testing PMTiles library...');
+            const pmtilesInstance = new pmtiles.PMTiles(pmtilesUrl);
+            
+            pmtilesInstance.getHeader().then(header => {
+                console.log('PMTiles header:', header);
+            }).catch(error => {
+                console.error('Error getting PMTiles header:', error);
+            });
+            
+            pmtilesInstance.getMetadata().then(metadata => {
+                console.log('PMTiles metadata:', metadata);
+                
+                // Add the source first
+                console.log('Adding PMTiles source to map...');
+                map.addSource(routeNetworkSource, {
+                    type: 'vector',
+                    url: `pmtiles://${pmtilesUrl}`
+                });
+                console.log('PMTiles source added successfully');
+                
+                // Now try to add layers based on metadata
+                if (metadata.vector_layers && metadata.vector_layers.length > 0) {
+                    console.log('Vector layers found:', metadata.vector_layers);
                     
-                    // Now add the source
-                    try {
-                        console.log('Adding PMTiles source to map...');
-                        map.addSource(routeNetworkSource, {
-                            type: 'vector',
-                            url: `pmtiles://${pmtilesUrl}`
-                        });
-                        console.log('PMTiles source added successfully');
+                    metadata.vector_layers.forEach((layer, index) => {
+                        console.log(`Layer ${index}: ${layer.id}`, layer);
                         
-                        // Wait a bit then try to add the layer
-                        setTimeout(() => {
-                            addRouteLayer();
-                        }, 1000);
+                        try {
+                            const layerId = `route-network-layer-${layer.id}`;
+                            map.addLayer({
+                                id: layerId,
+                                type: 'line',
+                                source: routeNetworkSource,
+                                'source-layer': layer.id,
+                                paint: {
+                                    // Color based on cycling volume using the reference styling
+                                    'line-color': [
+                                        'interpolate',
+                                        ['linear'],
+                                        ['get', 'all_fastest_bicycle_go_dutch'],
+                                        1, '#808080',      // Very low - gray
+                                        49, '#808080',     // Low threshold
+                                        50, '#ffff00',     // Low - yellow
+                                        99, '#ffff00',     // Yellow range
+                                        100, '#80ff00',    // Medium-low - light green
+                                        249, '#80ff00',    // Light green range
+                                        250, '#00ffff',    // Medium - cyan
+                                        499, '#00ffff',    // Cyan range
+                                        500, '#80c0ff',    // Medium-high - light blue
+                                        999, '#80c0ff',    // Light blue range
+                                        1000, '#0080ff',   // High - blue
+                                        1999, '#0080ff',   // Blue range
+                                        2000, '#0000ff',   // Very high - dark blue
+                                        2999, '#0000ff',   // Dark blue range
+                                        3000, '#ff00ff'    // Extremely high - magenta
+                                    ],
+                                    // Width based on zoom and cycling volume
+                                    'line-width': [
+                                        'interpolate',
+                                        ['linear'],
+                                        ['zoom'],
+                                        6, 0.4,
+                                        8, 1,
+                                        10, 2,
+                                        12, 4,
+                                        14, 8,
+                                        16, 14,
+                                        18, 24
+                                    ],
+                                    'line-opacity': 1,
+                                    'line-blur': 0
+                                }
+                            });
+                            
+                            console.log(`✅ Successfully added layer: ${layerId} with source-layer: ${layer.id}`);
+                            
+                            // Add toggle functionality for the first layer
+                            if (index === 0) {
+                                const toggle = document.getElementById('route-network-toggle');
+                                toggle.addEventListener('change', (e) => {
+                                    const visibility = e.target.checked ? 'visible' : 'none';
+                                    map.setLayoutProperty(layerId, 'visibility', visibility);
+                                    console.log(`Route network layer visibility: ${visibility}`);
+                                });
+                            }
+                            
+                        } catch (error) {
+                            console.error(`Failed to add layer ${layer.id}:`, error);
+                        }
+                    });
+                } else {
+                    console.log('No vector_layers found in metadata, trying without source-layer');
+                    
+                    // Fallback: try without source-layer specification
+                    try {
+                        map.addLayer({
+                            id: 'route-network-layer-default',
+                            type: 'line',
+                            source: routeNetworkSource,
+                            paint: {
+                                // Color based on cycling volume using the reference styling
+                                'line-color': [
+                                    'interpolate',
+                                    ['linear'],
+                                    ['get', 'all_fastest_bicycle_go_dutch'],
+                                    1, '#808080',      // Very low - gray
+                                    49, '#808080',     // Low threshold
+                                    50, '#ffff00',     // Low - yellow
+                                    99, '#ffff00',     // Yellow range
+                                    100, '#80ff00',    // Medium-low - light green
+                                    249, '#80ff00',    // Light green range
+                                    250, '#00ffff',    // Medium - cyan
+                                    499, '#00ffff',    // Cyan range
+                                    500, '#80c0ff',    // Medium-high - light blue
+                                    999, '#80c0ff',    // Light blue range
+                                    1000, '#0080ff',   // High - blue
+                                    1999, '#0080ff',   // Blue range
+                                    2000, '#0000ff',   // Very high - dark blue
+                                    2999, '#0000ff',   // Dark blue range
+                                    3000, '#ff00ff'    // Extremely high - magenta
+                                ],
+                                // Width based on zoom and cycling volume
+                                'line-width': [
+                                    'interpolate',
+                                    ['linear'],
+                                    ['zoom'],
+                                    6, 0.4,
+                                    8, 1,
+                                    10, 2,
+                                    12, 4,
+                                    14, 8,
+                                    16, 14,
+                                    18, 24
+                                ],
+                                'line-opacity': 1,
+                                'line-blur': 0
+                            }
+                        });
+                        
+                        console.log('✅ Successfully added layer without source-layer');
+                        
+                        const toggle = document.getElementById('route-network-toggle');
+                        toggle.addEventListener('change', (e) => {
+                            const visibility = e.target.checked ? 'visible' : 'none';
+                            map.setLayoutProperty('route-network-layer-default', 'visibility', visibility);
+                            console.log(`Route network layer visibility: ${visibility}`);
+                        });
                         
                     } catch (error) {
-                        console.error('Error adding PMTiles source:', error);
+                        console.error('Failed to add layer without source-layer:', error);
                     }
-                })
-                .catch(error => {
-                    console.error('Error fetching PMTiles file:', error);
+                }
+            }).catch(error => {
+                console.error('Error getting PMTiles metadata:', error);
+                
+                // Fallback if metadata fails
+                console.log('Metadata failed, adding source and trying common layer names...');
+                map.addSource(routeNetworkSource, {
+                    type: 'vector',
+                    url: `pmtiles://${pmtilesUrl}`
                 });
-
+                
+                setTimeout(() => {
+                    addRouteLayer();
+                }, 1000);
+            });
+            
+            // Function for fallback layer addition
             function addRouteLayer() {
                 console.log('Attempting to add route layer...');
                 
                 try {
-                    // Try different source layer names that might exist
+                    // First, try without specifying source-layer (for single-layer PMTiles)
+                    console.log('Trying layer without source-layer specification...');
+                    
+                    try {
+                        map.addLayer({
+                            id: 'route-network-layer-auto',
+                            type: 'line',
+                            source: routeNetworkSource,
+                            // Don't specify source-layer - let MapLibre auto-detect
+                            paint: {
+                                // Color based on cycling volume
+                                'line-color': [
+                                    'case',
+                                    ['>', ['get', 'cycling'], 1000], '#d73027', // High volume - dark red
+                                    ['>', ['get', 'cycling'], 500], '#f46d43',  // Medium-high - orange-red
+                                    ['>', ['get', 'cycling'], 200], '#fdae61',  // Medium - orange
+                                    ['>', ['get', 'cycling'], 100], '#fee08b',  // Medium-low - yellow
+                                    ['>', ['get', 'cycling'], 50], '#e6f598',   // Low - light green
+                                    ['>', ['get', 'cycling'], 10], '#abdda4',   // Very low - green
+                                    '#74add1' // Minimal/no data - blue
+                                ],
+                                // Width based on cycling volume
+                                'line-width': [
+                                    'interpolate',
+                                    ['linear'],
+                                    ['zoom'],
+                                    8, [
+                                        'case',
+                                        ['>', ['get', 'cycling'], 1000], 4,
+                                        ['>', ['get', 'cycling'], 500], 3,
+                                        ['>', ['get', 'cycling'], 100], 2,
+                                        1
+                                    ],
+                                    12, [
+                                        'case',
+                                        ['>', ['get', 'cycling'], 1000], 8,
+                                        ['>', ['get', 'cycling'], 500], 6,
+                                        ['>', ['get', 'cycling'], 100], 4,
+                                        2
+                                    ],
+                                    16, [
+                                        'case',
+                                        ['>', ['get', 'cycling'], 1000], 12,
+                                        ['>', ['get', 'cycling'], 500], 9,
+                                        ['>', ['get', 'cycling'], 100], 6,
+                                        3
+                                    ]
+                                ],
+                                'line-opacity': 0.8
+                            }
+                        });
+                        
+                        console.log('✅ Successfully added layer without source-layer specification');
+                        
+                        // Add toggle functionality
+                        const toggle = document.getElementById('route-network-toggle');
+                        toggle.addEventListener('change', (e) => {
+                            const visibility = e.target.checked ? 'visible' : 'none';
+                            map.setLayoutProperty('route-network-layer-auto', 'visibility', visibility);
+                            console.log(`Route network layer visibility: ${visibility}`);
+                        });
+                        
+                        return; // Success, exit function
+                        
+                    } catch (error) {
+                        console.warn('Failed to add layer without source-layer:', error.message);
+                    }
+                    
+                    // If that failed, try common source layer names
                     const possibleSourceLayers = [
-                        'route_network_fastest',
                         'default',
-                        'layer0',
+                        'route_network_fastest',
                         'routes',
-                        'network'
+                        'network',
+                        'layer0',
+                        'lines',
+                        'data'
                     ];
                     
                     let layerAdded = false;
@@ -243,9 +446,45 @@
                                 source: routeNetworkSource,
                                 'source-layer': sourceLayer,
                                 paint: {
-                                    'line-color': '#ff0000', // Bright red for visibility
-                                    'line-width': 3,
-                                    'line-opacity': 1
+                                    // Color based on cycling volume
+                                    'line-color': [
+                                        'case',
+                                        ['>', ['get', 'cycling'], 1000], '#d73027', // High volume - dark red
+                                        ['>', ['get', 'cycling'], 500], '#f46d43',  // Medium-high - orange-red
+                                        ['>', ['get', 'cycling'], 200], '#fdae61',  // Medium - orange
+                                        ['>', ['get', 'cycling'], 100], '#fee08b',  // Medium-low - yellow
+                                        ['>', ['get', 'cycling'], 50], '#e6f598',   // Low - light green
+                                        ['>', ['get', 'cycling'], 10], '#abdda4',   // Very low - green
+                                        '#74add1' // Minimal/no data - blue
+                                    ],
+                                    // Width based on cycling volume
+                                    'line-width': [
+                                        'interpolate',
+                                        ['linear'],
+                                        ['zoom'],
+                                        8, [
+                                            'case',
+                                            ['>', ['get', 'cycling'], 1000], 4,
+                                            ['>', ['get', 'cycling'], 500], 3,
+                                            ['>', ['get', 'cycling'], 100], 2,
+                                            1
+                                        ],
+                                        12, [
+                                            'case',
+                                            ['>', ['get', 'cycling'], 1000], 8,
+                                            ['>', ['get', 'cycling'], 500], 6,
+                                            ['>', ['get', 'cycling'], 100], 4,
+                                            2
+                                        ],
+                                        16, [
+                                            'case',
+                                            ['>', ['get', 'cycling'], 1000], 12,
+                                            ['>', ['get', 'cycling'], 500], 9,
+                                            ['>', ['get', 'cycling'], 100], 6,
+                                            3
+                                        ]
+                                    ],
+                                    'line-opacity': 0.8
                                 }
                             });
                             
@@ -297,11 +536,44 @@
             if (e.isSourceLoaded) {
                 console.log(`📊 Source loaded: ${e.sourceId}`);
                 if (e.sourceId === 'route-network-fastest') {
-                    console.log('Route network source loaded!');
+                    console.log('Route network source loaded! Now adding layer...');
+                    
+                    // Add the layer now that source is loaded
+                    addRouteLayer();
+                    
+                    // Try to query the source to see what's available
+                    setTimeout(() => {
+                        try {
+                            console.log('Querying source features...');
+                            
+                            // Query all features from the source
+                            const bounds = map.getBounds();
+                            const features = map.querySourceFeatures('route-network-fastest', {
+                                sourceLayer: null // Query all layers
+                            });
+                            console.log('All source features:', features.length, features);
+                            
+                            // Try to get the source object directly
+                            const source = map.getSource('route-network-fastest');
+                            console.log('Source object:', source);
+                            
+                            // Check if we can get vector tile source info
+                            if (source && source._options) {
+                                console.log('Source options:', source._options);
+                            }
+                            
+                        } catch (e) {
+                            console.error('Error querying source:', e);
+                        }
+                    }, 2000);
                 }
             }
             if (e.sourceDataType === 'metadata') {
                 console.log(`📋 Source metadata loaded: ${e.sourceId}`);
+                if (e.sourceId === 'route-network-fastest') {
+                    const source = map.getSource('route-network-fastest');
+                    console.log('Source after metadata load:', source);
+                }
             }
         });
 
